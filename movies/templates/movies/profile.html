@@ -1,0 +1,1527 @@
+{% extends 'movies/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- User Header Card -->
+    <div class="dashboard-header card">
+        <div class="header-content">
+            <div class="user-profile">
+                <div class="avatar">
+                    {% if user.profile.avatar %}
+                    <img src="{{ user.profile.avatar.url }}" alt="{{ user.username }}" class="profile-avatar">
+                    {% else %}
+                    <div class="default-avatar">{{ user.username|first|upper }}</div>
+                    {% endif %}
+                </div>
+                <div class="user-meta">
+                    <h2>{{ user.username }}</h2>
+                    <p>Member since {{ user.date_joined|date:"M Y" }}</p>
+                    <div class="stats-badges">
+                        <span class="badge">{{ watchlist.count }} Watchlist</span>
+                        <span class="badge">{{ reviews.paginator.count }} Reviews</span>
+                        <span class="badge">{{ avg_rating|default:"-" }} Avg Rating</span>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-actions">
+                <a href="{% url 'movies:edit_profile' %}" class="btn btn-edit">
+                    <i class="bi bi-pencil-square"></i> Edit Profile
+                </a>
+                <a href="{% url 'account_change_password' %}" class="btn btn-password">
+                    <i class="bi bi-shield-lock"></i> Change Password
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Feed Section -->
+    <div class="activity-feed card">
+        <div class="panel-header">
+            <h3><i class="bi bi-activity"></i> Activity Feed</h3>
+            {% if recent_activities.paginator.num_pages > 1 %}
+            <div class="activity-pagination">
+                {% if recent_activities.has_previous %}
+                <a href="?activity_page={{ recent_activities.previous_page_number }}{% if request.GET.reviews_page %}&reviews_page={{ request.GET.reviews_page }}{% endif %}"
+                    class="page-arrow">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                {% endif %}
+                <span class="page-info">
+                    Page {{ recent_activities.number }} of {{ recent_activities.paginator.num_pages }}
+                </span>
+                {% if recent_activities.has_next %}
+                <a href="?activity_page={{ recent_activities.next_page_number }}{% if request.GET.reviews_page %}&reviews_page={{ request.GET.reviews_page }}{% endif %}"
+                    class="page-arrow">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        <div class="feed-items">
+            {% for activity in recent_activities %}
+            <div class="feed-item">
+                <div class="activity-icon">
+                    {% if activity.type == 'review' %}
+                    <i class="bi bi-star-fill text-warning"></i>
+                    {% elif activity.type == 'watchlist' %}
+                    <i class="bi bi-bookmark-check text-primary"></i>
+                    {% endif %}
+                </div>
+                <div class="activity-content">
+                    <p class="activity-text">{{ activity.text }}</p>
+                    <span class="activity-time">{{ activity.timestamp|timesince }} ago</span>
+                </div>
+                {% if activity.movie %}
+                <div class="activity-movie">
+                    <img src="{% if activity.movie.poster_url %}{{ activity.movie.poster_url.url }}{% else %}{% static 'images/default_poster.jpg' %}{% endif %}"
+                        alt="{{ activity.movie.title }}" class="small-poster">
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-activity"></i>
+                <p>No recent activity</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Updated Watchlist Section -->
+    <div class="watchlist-section card">
+        <div class="panel-header">
+            <h3><i class="bi bi-bookmark-star"></i> My Watchlist</h3>
+            {% if watchlist %}
+            <div class="panel-actions">
+                <div class="dropdown sort-dropdown">
+                    <button class="btn-sort dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-funnel-fill"></i>
+                        {% if current_sort == '-date' %}Newest First{% endif %}
+                        {% if current_sort == 'date' %}Oldest First{% endif %}
+                        {% if current_sort == 'title' %}A-Z{% endif %}
+                        {% if current_sort == '-title' %}Z-A{% endif %}
+                        {% if current_sort == 'rating' %}Low Rating{% endif %}
+                        {% if current_sort == '-rating' %}High Rating{% endif %}
+                        {% if current_sort == 'year' %}Oldest Year{% endif %}
+                        {% if current_sort == '-year' %}Newest Year{% endif %}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="sortDropdown">
+                        <li>
+                            <h6 class="dropdown-header">Date Added</h6>
+                        </li>
+                        <li><a class="dropdown-item {% if current_sort == '-date' %}active{% endif %}"
+                                href="?sort_watchlist=-date">Newest First</a></li>
+                        <li><a class="dropdown-item {% if current_sort == 'date' %}active{% endif %}"
+                                href="?sort_watchlist=date">Oldest First</a></li>
+        
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <h6 class="dropdown-header">Title</h6>
+                        </li>
+                        <li><a class="dropdown-item {% if current_sort == 'title' %}active{% endif %}"
+                                href="?sort_watchlist=title">A-Z</a></li>
+                        <li><a class="dropdown-item {% if current_sort == '-title' %}active{% endif %}"
+                                href="?sort_watchlist=-title">Z-A</a></li>
+        
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <h6 class="dropdown-header">Rating</h6>
+                        </li>
+                        <li><a class="dropdown-item {% if current_sort == '-rating' %}active{% endif %}"
+                                href="?sort_watchlist=-rating">Highest First</a></li>
+                        <li><a class="dropdown-item {% if current_sort == 'rating' %}active{% endif %}"
+                                href="?sort_watchlist=rating">Lowest First</a></li>
+        
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <h6 class="dropdown-header">Year</h6>
+                        </li>
+                        <li><a class="dropdown-item {% if current_sort == '-year' %}active{% endif %}"
+                                href="?sort_watchlist=-year">Newest First</a></li>
+                        <li><a class="dropdown-item {% if current_sort == 'year' %}active{% endif %}"
+                                href="?sort_watchlist=year">Oldest First</a></li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    
+        <div class="watchlist-horizontal-scroll">
+            {% for item in watchlist %}
+            <div class="watchlist-card">
+                <div class="poster-container">
+                    <img src="{% if item.movie.poster_url %}{{ item.movie.poster_url.url }}{% else %}{% static 'images/default_poster.jpg' %}{% endif %}"
+                        alt="{{ item.movie.title }}" class="standard-poster">
+                    <button class="btn-remove" data-remove-url="{% url 'movies:remove_watchlist' item.movie.id %}">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+                <div class="watchlist-info">
+                    <h4>{{ item.movie.title }}</h4>
+                    <div class="watchlist-meta">
+                        <span>{{ item.movie.release_date|date:"Y" }}</span> <!-- Fixed date format -->
+                        <div class="watchlist-rating">
+                            {% with rating=item.movie.average_rating|default:0 %}
+                            <div class="star-container">
+                                {% for i in "12345" %}
+                                {% if rating >= forloop.counter|add:"0" %}
+                                <i class="bi bi-star-fill"></i>
+                                {% else %}
+                                {% if rating > forloop.counter|add:"-1" %}
+                                <div class="half-star-container">
+                                    <i class="bi bi-star"></i>
+                                    <i class="bi bi-star-fill half-star"></i>
+                                </div>
+                                {% else %}
+                                <i class="bi bi-star"></i>
+                                {% endif %}
+                                {% endif %}
+                                {% endfor %}
+                                <span class="rating-text">{{ rating|floatformat:1 }}</span>
+                            </div>
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-bookmark-plus"></i>
+                <p>Your watchlist is empty</p>
+                <a href="{% url 'movies:home' %}" class="btn btn-browse">
+                    <i class="bi bi-film"></i> Browse Movies
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Horizontal Recent Reviews Section -->
+    <div class="recent-reviews-section card">
+        <div class="panel-header">
+            <h3><i class="bi bi-chat-square-text"></i> Recent Reviews</h3>
+            {% if reviews.paginator.num_pages > 1 %}
+            <div class="reviews-pagination">
+                {% if reviews.has_previous %}
+                <a href="?reviews_page={{ reviews.previous_page_number }}" class="page-arrow">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                {% endif %}
+                <span class="page-info">
+                    Page {{ reviews.number }} of {{ reviews.paginator.num_pages }}
+                </span>
+                {% if reviews.has_next %}
+                <a href="?reviews_page={{ reviews.next_page_number }}" class="page-arrow">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="reviews-horizontal-scroll">
+            {% for review in reviews %}
+            <div class="review-card">
+                <div class="poster-container">
+                    <img src="{% if review.movie.poster_url %}{{ review.movie.poster_url.url }}{% else %}{% static 'images/default_poster.jpg' %}{% endif %}"
+                        alt="{{ review.movie.title }}" class="standard-poster">
+                </div>
+                <div class="review-content">
+                    <div class="review-rating">
+                        {% for i in "12345" %}
+                        <i
+                            class="bi bi-star{% if forloop.counter > review.rating %}-empty{% else %}-fill{% endif %}"></i>
+                        {% endfor %}
+                    </div>
+                    <p class="review-text">{{ review.comment|truncatechars:100 }}</p>
+                    <div class="review-meta">
+                        <span>{{ review.movie.title }}</span>
+                        <b>  </b>
+                        <span>{{ review.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="bi bi-pen"></i>
+                <p>No reviews yet</p>
+                <a href="{% url 'movies:home' %}" class="btn btn-primary">Write a Review</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    
+
+        <!-- Recommendations Panel with Half-Star Support -->
+        <div class="recommendations-section card">
+            <div class="panel-header">
+                <h3><i class="bi bi-lightbulb"></i> Recommended For You</h3>
+            </div>
+            <div class="recommendations-horizontal-scroll">
+                {% for movie in recommended_movies %}
+                <div class="recommendation-card">
+                    <div class="poster-container">
+                        <img src="{% if movie.poster_url %}{{ movie.poster_url.url }}{% else %}{% static 'images/default_poster.jpg' %}{% endif %}"
+                            alt="{{ movie.title }}" class="standard-poster">
+                        <button class="btn-watchlist" data-add-url="{% url 'movies:add_to_watchlist' movie.id %}">
+                            <i class="bi bi-plus-circle"></i>
+                        </button>
+                    </div>
+                    <div class="recommendation-info">
+                        <h4>{{ movie.title }}</h4>
+                        <div class="recommendation-meta">
+                            <span>{{ movie.year }}</span>
+                            <div class="recommendation-rating">
+                                {% with rating=movie.average_rating|default:0 %}
+                                <div class="star-container">
+                                    {% for i in "12345" %}
+                                    {% if rating >= forloop.counter|add:"0" %}
+                                    <i class="bi bi-star-fill"></i> <!-- Full star -->
+                                    {% else %}
+                                    {% if rating > forloop.counter|add:"-1" %}
+                                    <div class="half-star-container">
+                                        <i class="bi bi-star"></i> <!-- Empty star background -->
+                                        <i class="bi bi-star-fill half-star"></i> <!-- Half star fill -->
+                                    </div>
+                                    {% else %}
+                                    <i class="bi bi-star"></i> <!-- Empty star -->
+                                    {% endif %}
+                                    {% endif %}
+                                    {% endfor %}
+                                    <span class="rating-text">{{ rating|floatformat:1 }}</span>
+                                </div>
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="bi bi-emoji-frown"></i>
+                    <p>No recommendations yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+            const avatar = document.querySelector('.profile-avatar');
+            if (avatar) {
+                // Reset image loading to ensure proper display
+                avatar.src = avatar.src + '?' + new Date().getTime();
+
+                // Optional: Adjust positioning based on image dimensions
+                avatar.onload = function () {
+                    if (this.naturalWidth > this.naturalHeight) {
+                        this.style.objectPosition = 'center center';
+                    } else {
+                        this.style.objectPosition = 'top center';
+                    }
+                };
+            }
+        });
+    document.addEventListener('DOMContentLoaded', function () {
+            console.log("Recommended Movies Debug Info:");
+            //{% for movie in recommended_movies %}
+            //    console.log("Movie: {{ movie.title }}, Rating: {{ movie.average_rating|default:'None' }}");
+            //{% endfor %}
+        });
+    document.addEventListener('DOMContentLoaded', function () {
+            // Make sort persist with AJAX
+            document.querySelectorAll('.sort-option').forEach(option => {
+                option.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    fetch(this.href)
+                        .then(response => response.text())
+                        .then(html => {
+                            document.querySelector('#watchlist-container').innerHTML =
+                                new DOMParser().parseFromString(html, 'text/html')
+                                    .querySelector('#watchlist-container').innerHTML;
+                        });
+                });
+            });
+        });
+    document.addEventListener('DOMContentLoaded', function () {
+        // Your existing JavaScript for watchlist and reviews
+        
+        // Social Features functionality
+        document.getElementById('share-profile').addEventListener('click', function() {
+            const profileUrl = window.location.href;
+            navigator.clipboard.writeText(profileUrl).then(() => {
+                alert('Profile link copied to clipboard!');
+            });
+        });
+        
+        // Add more social feature handlers as needed
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // Watchlist removal
+        document.querySelectorAll('.btn-remove').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const removeUrl = this.getAttribute('data-remove-url');
+                fetch(removeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            });
+        });
+        
+        // Add to watchlist
+        document.querySelectorAll('.btn-watchlist').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const addUrl = this.getAttribute('data-add-url');
+                fetch(addUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        location.reload();
+                    }
+                });
+            });
+        });
+
+        
+    });
+console.log(debug_info);
+</script>
+
+<style>
+    .profile-avatar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center; /* Ensures the face is centered */
+}
+    .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid white;
+    position: relative; /* Add this */
+}
+
+.avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* This ensures the image covers the container */
+    position: absolute; /* Add this */
+    top: 0;
+    left: 0;
+}
+    /* Add this to your stylesheet */
+.sort-dropdown .dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+    width: 180px;
+    background-color: #343a40; /* Dark background for the dropdown */
+}
+
+.sort-dropdown .dropdown-header {
+    font-size: 0.75rem;
+    padding: 0.25rem 1rem;
+    color: #adb5bd;
+    background-color: #343a40; /* Match dropdown bg */
+}
+
+.sort-dropdown .dropdown-item {
+    padding: 0.25rem 1rem;
+    font-size: 0.85rem;
+    color: #e9ecef; /* Light text color */
+    transition: all 0.15s ease; /* Smooth hover transition */
+}
+
+/* Hover state - keeps text visible */
+.sort-dropdown .dropdown-item:hover {
+    background-color: #495057 !important; /* Slightly lighter dark */
+    color: #ffffff !important; /* Bright white text */
+    text-decoration: none;
+}
+
+/* Active state (selected item) */
+.sort-dropdown .dropdown-item.active {
+    background-color: #007bff !important; /* Blue highlight */
+    color: white !important;
+}
+
+/* Divider color */
+.sort-dropdown .dropdown-divider {
+    border-color: #495057;
+}
+    /* Watchlist Styles to Match Recommendations */
+    .watchlist-section {
+        margin-bottom: 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .watchlist-horizontal-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding: 1rem;
+        scrollbar-width: thin;
+    }
+
+    .watchlist-card {
+        min-width: 160px;
+        flex-shrink: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+    .watchlist-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .watchlist-card .poster-container {
+        position: relative;
+        width: 160px;
+        height: 240px;
+        overflow: hidden;
+    }
+
+    .watchlist-card .standard-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .watchlist-card .btn-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(255, 59, 48, 0.9);
+        color: white;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        opacity: 0;
+    }
+
+    .watchlist-card:hover .btn-remove {
+        opacity: 1;
+    }
+
+    .watchlist-card .btn-remove:hover {
+        background: rgba(255, 30, 30, 1);
+    }
+
+    .watchlist-info {
+        padding: 0.75rem;
+    }
+
+    .watchlist-info h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .watchlist-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    /* Shared Star Rating Styles */
+    .watchlist-rating, .recommendation-rating {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .star-container {
+        display: inline-flex;
+        position: relative;
+    }
+    
+    .half-star-container {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .half-star {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 50%;
+        overflow: hidden;
+    }
+    
+    .watchlist-rating i, .recommendation-rating i {
+        color: #e4e5e9;
+        font-size: 16px;
+    }
+    
+    .watchlist-rating .bi-star-fill, .recommendation-rating .bi-star-fill {
+        color: #ffc107;
+    }
+    
+    .rating-text {
+        margin-left: 5px;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .watchlist-card {
+            min-width: 140px;
+        }
+        
+        .watchlist-card .poster-container {
+            width: 140px;
+            height: 210px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .watchlist-card {
+            min-width: 120px;
+        }
+        
+        .watchlist-card .poster-container {
+            width: 120px;
+            height: 180px;
+        }
+    }
+    /* Recommendations Section - Horizontal Layout */
+    /* Star Rating Styles with Half-Star Support */
+    .recommendation-rating {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .star-container {
+        display: inline-flex;
+        position: relative;
+    }
+    
+    .half-star-container {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+    }
+    
+    .half-star {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 50%;
+        overflow: hidden;
+    }
+    
+    .recommendation-rating i {
+        color: #e4e5e9; /* Empty star color */
+        font-size: 16px;
+    }
+    
+    .recommendation-rating .bi-star-fill {
+        color: #ffc107; /* Filled star color */
+    }
+    
+    .rating-text {
+        margin-left: 5px;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .recommendation-rating i {
+        color: #e4e5e9; /* Default empty star color */
+    }
+    
+    .recommendation-rating .bi-star-fill {
+        color: #ffc107; /* Filled star color */
+    }
+    
+    .recommendation-rating .bi-star-half {
+        color: #ffc107; /* Half star color */
+        position: relative;
+    }
+    
+    .recommendation-rating .bi-star-half::before {
+        content: "\f586"; /* Bootstrap half-star icon */
+        position: absolute;
+        left: 0;
+        width: 50%;
+        overflow: hidden;
+    }
+    
+    .rating-value {
+        margin-left: 5px;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    
+    .recommendations-section {
+        margin-top: 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .recommendations-horizontal-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding: 1rem;
+        scrollbar-width: thin;
+    }
+
+    .recommendation-card {
+        min-width: 160px;
+        flex-shrink: 0;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+
+    .recommendation-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .poster-container {
+        position: relative;
+        width: 160px;
+        height: 240px;
+        overflow: hidden;
+    }
+
+    .standard-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .btn-watchlist {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: rgba(40, 167, 69, 0.9);
+        color: white;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        opacity: 0;
+    }
+
+    .recommendation-card:hover .btn-watchlist {
+        opacity: 1;
+    }
+
+    .btn-watchlist:hover {
+        background: rgba(33, 136, 56, 1);
+    }
+
+    .recommendation-info {
+        padding: 0.75rem;
+    }
+
+    .recommendation-info h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .recommendation-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .recommendation-rating {
+        color: #ffc107; /* Gold color for stars */
+        font-size: 0.9rem;
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .recommendations-horizontal-scroll::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .recommendations-horizontal-scroll::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+    
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .recommendation-card {
+            min-width: 140px;
+        }
+        
+        .poster-container {
+            width: 140px;
+            height: 210px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .recommendation-card {
+            min-width: 120px;
+        }
+        
+        .poster-container {
+            width: 120px;
+            height: 180px;
+        }
+    }
+     /* Updated Header Styles */
+    .dashboard-header {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        color: white;
+        border-radius: 12px;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex: 1;
+    }
+
+    .quick-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+        min-width: 180px;
+    }
+
+    /* Button Styles */
+    .btn-edit, .btn-password {
+        width: 100%;
+        text-align: center;
+        padding: 0.6rem;
+        border-radius: 8px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-edit {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .btn-password {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+
+    .btn-password:hover {
+        background: rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .header-content {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .user-profile {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .quick-actions {
+            width: 100%;
+            flex-direction: row;
+        }
+
+        .btn-edit, .btn-password {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .quick-actions {
+            flex-direction: column;
+        }
+    }
+    /* Activity Pagination Styles */
+    .activity-pagination {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        color: #333;
+        text-decoration: none;
+    }
+
+    .page-arrow:hover {
+        background: #e0e0e0;
+    }
+
+    .page-info {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    /* New Activity Feed Styles */
+    .activity-feed {
+        margin-bottom: 1.5rem;
+    }
+
+    .feed-items {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .feed-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        gap: 1rem;
+    }
+
+    .activity-icon {
+        font-size: 1.5rem;
+        color: #4a6cf7;
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-text {
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .activity-time {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+
+    .activity-movie img {
+        width: 50px;
+        height: 75px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+
+
+    /* Dashboard Base Styles */
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #6e8efb, #a777e3);
+        color: white;
+    }
+
+    .user-profile {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid white;
+    }
+
+    .default-avatar {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #4a6cf7;
+        color: white;
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .stats-badges {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .badge {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+
+    /* Dashboard Grid Layout */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+    }
+
+    .watchlist-panel {
+        grid-column: span 8;
+    }
+
+    .reviews-panel {
+        grid-column: span 4;
+    }
+
+    .stats-panel {
+        grid-column: span 4;
+    }
+
+    .recommendations-panel {
+        grid-column: span 8;
+    }
+
+    /* Panel Styles */
+    .dashboard-panel {
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    /* Watchlist Section Styles */
+    .watchlist-section {
+        margin-bottom: 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.25rem 1.5rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .panel-header h3 {
+        margin: 0;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .panel-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.8rem;
+    }
+
+    /* Sort Button */
+    .btn-panel {
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border: 1px solid #ddd;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-panel:hover {
+        background: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Browse Button */
+    .btn-primary {
+        background: linear-gradient(135deg, #4a6cf7, #6e8efb);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(74, 108, 247, 0.2);
+        text-decoration: none;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #3a5ce4, #5d7ef0);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(74, 108, 247, 0.3);
+        color: white;
+    }
+
+    /* Dropdown Styles */
+    .dropdown-menu {
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        padding: 0.5rem;
+    }
+
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item.active {
+        background-color: rgba(74, 108, 247, 0.1);
+        color: #4a6cf7;
+        font-weight: 500;
+    }
+
+    .dropdown-divider {
+        margin: 0.3rem 0;
+    }
+
+    .dropdown-header {
+        padding: 0.3rem 1rem;
+        font-size: 0.75rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 3rem 1rem;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        color: #adb5bd;
+    }
+
+    .empty-state p {
+        margin-bottom: 0;
+        font-size: 1.1rem;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .panel-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .panel-actions {
+            width: 100%;
+            align-items: flex-start;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        .btn-panel, .btn-primary {
+            width: auto;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .panel-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+    /* ===== Updated Watchlist Styles ===== */
+    .movie-carousel {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 1.5rem;
+        padding: 0;
+    }
+
+    .movie-card {
+        position: relative;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+    }
+
+    .poster-container-center {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 2/3;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .standard-poster {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .movie-actions {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        z-index: 2;
+    }
+
+    .btn-remove {
+        background: rgba(255, 59, 48, 0.9);
+        color: white;
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s ease;
+    }
+
+    .btn-remove:hover {
+        background: rgba(255, 30, 30, 1);
+    }
+
+    .movie-info {
+        padding: 12px 4px 4px;
+    }
+
+    .movie-info h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #333;
+    }
+
+    .movie-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 6px;
+    }
+
+    /* Hover Effects */
+    .movie-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .movie-card:hover .standard-poster {
+        transform: scale(1.03);
+    }
+
+    .movie-card:hover .movie-actions {
+        opacity: 1;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 1200px) {
+
+        .watchlist-panel,
+        .recommendations-panel {
+            grid-column: span 12;
+        }
+
+        .reviews-panel,
+        .stats-panel {
+            grid-column: span 6;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .user-profile {
+            flex-direction: column;
+        }
+
+        .reviews-panel,
+        .stats-panel {
+            grid-column: span 20;
+        }
+
+        .movie-carousel {
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 1rem;
+        }
+    }
+
+    /* Poster Container - Fixed Dimensions */
+    .poster-container {
+        width: 120px;
+        height: 180px;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+    }
+
+    /* Recent Reviews Section */
+    .recent-reviews-section {
+        margin-top: 2rem;
+        padding: 1rem 0;
+        border-top: 1px solid #eee;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .reviews-horizontal-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 1rem;
+        scrollbar-width: thin;
+    }
+
+    .review-card {
+        min-width: 300px;
+        display: flex;
+        gap: 1rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1rem;
+        flex-shrink: 0;
+    }
+
+    .review-poster {
+        width: 80px;
+        height: 120px;
+        flex-shrink: 0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .review-poster img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .review-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .review-rating {
+        color: #ffc107;
+        font-size: 0.9rem;
+    }
+
+    .review-text {
+        margin: 0.5rem 0;
+        font-size: 0.9rem;
+        color: #555;
+    }
+
+    .review-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.8rem;
+        color: #777;
+    }
+
+    /* Pagination Styles */
+    .review-pagination {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .page-arrow {
+        display: inline-block;
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        text-align: center;
+        background: #f0f0f0;
+        border-radius: 50%;
+        text-decoration: none;
+        color: #333;
+        font-weight: bold;
+    }
+
+    .current-page {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    /* Hide scrollbar but keep functionality */
+    .reviews-horizontal-scroll::-webkit-scrollbar {
+        height: 5px;
+    }
+
+    .reviews-horizontal-scroll::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 10px;
+    }
+
+    /* Hover effect (optional) */
+    .poster-container:hover .standard-poster {
+        transform: scale(1.05);
+    }
+
+    /* Fallback for broken images */
+    .standard-poster[src*="default_poster"] {
+        object-fit: contain;
+        background: #f0f0f0;
+        padding: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .poster-container {
+            width: 100px;
+            height: 150px;
+        }
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .social-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

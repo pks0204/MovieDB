@@ -1,0 +1,156 @@
+{% extends 'movies/base.html' %}
+
+{% block content %}
+<h1>{{ genre.name }} Movies</h1>
+<div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for movie in movies %}
+    <div class="col">
+        <div class="card movie-card h-100">
+            <div class="position-relative">
+                <img src="{{ movie.poster_url.url }}" class="card-img-top movie-poster" alt="{{ movie.title }}">
+                <div class="rating-badge">
+                    {{ movie.rating|floatformat:1 }} <i class="bi bi-star-fill text-warning"></i>
+                </div>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ movie.title }}</h5>
+                {% for genre in movie.genres.all|slice:":3" %}
+                <span class="badge bg-secondary">{{ genre.name }}</span>
+                {% endfor %}
+                <p class="card-text text-muted">{{ movie.year }}</p>
+            </div>
+            <div class="card-footer bg-white">
+                <a href="{% url 'movies:movie_detail' movie.id %}" class="btn btn-sm btn-outline-primary w-100">
+                    View Details
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+<div class="sorting-buttons">
+    <span class="sort-label">Sort by:</span>
+    {% for sort_key, sort_label in sort_options.items %}
+    <a href="?sort={{ sort_key }}" class="sort-btn {% if current_sort == sort_key %}active{% endif %}">
+        {{ sort_label }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+<div class="pagination">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+        class="page-link">Previous</a>
+    {% endif %}
+
+    <span class="current-page">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </span>
+
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if selected_year %}&year={{ selected_year }}{% endif %}"
+        class="page-link">Next</a>
+    {% endif %}
+</div>
+<style>
+    /* Button Container */
+.sorting-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+/* "Sort by:" Label */
+.sort-label {
+    font-weight: 600;
+    color: #555;
+    font-size: 0.95rem;
+}
+
+/* Base Button Style */
+.sort-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #495057;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Hover State */
+.sort-btn:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Active State (Current Selection) */
+.sort-btn.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.25);
+}
+
+/* Active Hover State */
+.sort-btn.active:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    transform: none; /* Remove lift effect on active button */
+    
+}
+
+.pagination-container {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.pagination {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.page-link {
+    padding: 0.5rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #007bff;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.page-link:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+.page-info {
+    padding: 0.5rem 1rem;
+    margin: 0 0.5rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+@media (max-width: 576px) {
+    .page-link {
+        padding: 0.5rem 0.75rem;
+    }
+    .page-info {
+        margin: 0 0.25rem;
+    }
+}
+</style>
+{% endblock %}

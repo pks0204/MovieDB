@@ -1,0 +1,74 @@
+{% extends "movies/base.html" %}
+{% load socialaccount %}
+
+
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="card-title text-center mb-4">Create Account</h2>
+
+                <form method="POST" action="{% url 'account_signup' %}">
+                    {% csrf_token %}
+
+                    {% if form.errors %}
+                    {% for field in form %}
+                    {% for error in field.errors %}
+                    <div class="alert alert-danger">
+                        {{ error|escape }}
+                    </div>
+                    {% endfor %}
+                    {% endfor %}
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        <input type="text" name="username" id="id_username" class="form-control" placeholder="Username"
+                            autofocus>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_email" class="form-label">Email</label>
+                        <input type="email" name="email" id="id_email" class="form-control" placeholder="Email address">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_password1" class="form-label">Password</label>
+                        <input type="password" name="password1" id="id_password1" class="form-control"
+                            placeholder="Password">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="id_password2" class="form-label">Password (again)</label>
+                        <input type="password" name="password2" id="id_password2" class="form-control"
+                            placeholder="Password (again)">
+                    </div>
+
+                    {% if redirect_field_value %}
+                    <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">
+                    {% endif %}
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" type="submit">Create Account</button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-3">
+                    <p>Already have an account? <a href="{% url 'account_login' %}">Sign In</a></p>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="text-center">
+                    <p>Or sign up with:</p>
+                    <a href="{% provider_login_url 'google' %}" class="btn btn-outline-danger">
+                        <i class="bi bi-google"></i> Google
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

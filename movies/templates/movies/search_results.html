@@ -1,0 +1,142 @@
+{% extends 'movies/base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+    <div class="row">
+        <!-- Filter Sidebar -->
+        <div class="col-lg-3 col-md-4 mb-4">
+            <div class="card sticky-top" style="top: 70px; z-index: 1000;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Refine Search</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'movies:search' %}">
+                        <!-- Main Search -->
+                        <div class="mb-3">
+                            <label class="form-label">Search Movies</label>
+                            <input type="text" name="q" class="form-control" value="{{ query }}"
+                                placeholder="Title, actor, director or genre">
+                        </div>
+
+                        <!-- Genre Dropdown -->
+                        <div class="mb-3">
+                            <label class="form-label">Filter by Genre</label>
+                            <select name="genre" class="form-select">
+                                <option value="">All Genres</option>
+                                {% for genre in all_genres %}
+                                <option value="{{ genre.name }}" {% if filters.genre == genre.name %}selected{% endif %}>
+                                    {{ genre.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Year -->
+                        <div class="mb-3">
+                            <label class="form-label">Release Year</label>
+                            <input type="number" name="year" class="form-control" value="{{ filters.year }}"
+                                placeholder="Any year">
+                        </div>
+
+                        <!-- Rating -->
+                        <div class="mb-3">
+                            <label class="form-label">Minimum Rating</label>
+                            <input type="number" step="0.1" min="0" max="10" name="min_rating" class="form-control"
+                                value="{{ filters.min_rating }}" placeholder="0-10">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                            <a href="{% url 'movies:search' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Column -->
+        <div class="col-lg-9 col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>
+                    {% if query %}Results for "{{ query }}"{% else %}All Movies{% endif %}
+                    <small class="text-muted">({{ movies|length }} found)</small>
+                </h2>
+
+                <!-- Sort Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <i class="bi bi-sort-down"></i> Sort
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=title">A-Z</a>
+                        </li>
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=-title">Z-A</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=-rating">Highest
+                                Rated</a></li>
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=rating">Lowest
+                                Rated</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=-year">Newest
+                                First</a></li>
+                        <li><a class="dropdown-item"
+                                href="?q={{ query|urlencode }}&genre={{ filters.genre|urlencode }}&year={{ filters.year|urlencode }}&min_rating={{ filters.min_rating|urlencode }}&sort=year">Oldest
+                                First</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            {% if movies %}
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for movie in movies %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm">
+                        <img src="{{ movie.poster_url.url }}" class="card-img-top" alt="{{ movie.title }}"
+                            style="height: 400px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ movie.title }}</h5>
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                <span class="badge bg-primary">{{ movie.year }}</span>
+                                <div class="rating-badge">
+                                    {{ movie.rating|floatformat:1 }} <i class="bi bi-star-fill text-warning"></i>
+                                </div>
+                                {% for genre in movie.genres.all|slice:":3" %}
+                                <span class="badge bg-secondary">{{ genre.name }}</span>
+                                {% endfor %}
+                            </div>
+                            <p class="card-text">{{ movie.description|truncatewords:20 }}</p>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a href="{% url 'movies:movie_detail' movie.id %}" class="btn btn-primary w-100">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No movies found matching your criteria.
+                <a href="{% url 'movies:search' %}" class="alert-link">Clear filters</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

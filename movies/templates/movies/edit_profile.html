@@ -1,0 +1,148 @@
+{% extends "movies/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h2 class="card-title mb-4">Edit Profile</h2>
+
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Profile Picture Upload -->
+                        <div class="mb-4 text-center">
+                            <div class="avatar-upload mb-3">
+                                {% if user.profile.avatar %}
+                                <img id="avatar-preview" src="{{ user.profile.avatar.url }}" class="rounded-circle"
+                                    width="120" height="120" alt="Profile Picture">
+                                {% else %}
+                                <div id="avatar-preview"
+                                    class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:120px; height:120px; background:#eee; font-size:3rem;">
+                                    {{ user.username|first|upper }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex justify-content-center">
+                                <label for="id_avatar" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-camera"></i> Change Photo
+                                </label>
+                                <input type="file" name="avatar" id="id_avatar" accept="image/*" class="d-none">
+                                {% if user.profile.avatar %}
+                                <button type="button" id="remove-avatar" class="btn btn-outline-danger btn-sm ms-2">
+                                    <i class="bi bi-trash"></i> Remove
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Name Fields -->
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" name="first_name" value="{{ user.first_name }}" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" name="last_name" value="{{ user.last_name }}" class="form-control">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a href="{% url 'movies:profile' %}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Preview image when selected
+        const avatarInput = document.getElementById('id_avatar');
+        const avatarPreview = document.getElementById('avatar-preview');
+
+        if (avatarInput && avatarPreview) {
+            avatarInput.addEventListener('change', function (e) {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        if (avatarPreview.tagName === 'IMG') {
+                            avatarPreview.src = e.target.result;
+                        } else {
+                            // Convert the div to an img if it wasn't one
+                            const newImg = document.createElement('img');
+                            newImg.id = 'avatar-preview';
+                            newImg.src = e.target.result;
+                            newImg.className = 'rounded-circle';
+                            newImg.width = 120;
+                            newImg.height = 120;
+                            newImg.alt = 'Profile Picture';
+                            avatarPreview.parentNode.replaceChild(newImg, avatarPreview);
+                        }
+                    }
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+        }
+
+        // Remove avatar button
+        const removeBtn = document.getElementById('remove-avatar');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                // Create a hidden input to indicate removal
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'avatar-clear';
+                hiddenInput.value = '1';
+                this.parentNode.appendChild(hiddenInput);
+
+                // Reset preview to default
+                const previewContainer = document.querySelector('.avatar-upload');
+                const defaultPreview = document.createElement('div');
+                defaultPreview.id = 'avatar-preview';
+                defaultPreview.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                defaultPreview.style.width = '120px';
+                defaultPreview.style.height = '120px';
+                defaultPreview.style.background = '#eee';
+                defaultPreview.style.fontSize = '3rem';
+                defaultPreview.textContent = '{{ user.username|first|upper }}';
+
+                previewContainer.replaceChild(defaultPreview, avatarPreview);
+
+                // Hide the remove button
+                this.style.display = 'none';
+            });
+        }
+    });
+</script>
+
+<style>
+    .avatar-upload {
+        margin: 0 auto;
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 3px solid #dee2e6;
+    }
+
+    #id_avatar {
+        display: none;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #0d6efd;
+        color: white;
+    }
+
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+</style>
+{% endblock %}

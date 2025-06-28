@@ -1,0 +1,209 @@
+{% extends 'movies/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="movie-detail-container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="poster-container">
+                <img src="{% if movie.poster_url %}{{ movie.poster_url.url }}{% else %}{% static 'images/default_poster.jpg' %}{% endif %}"
+                    class="img-fluid rounded movie-poster" alt="{{ movie.title }}">
+            </div>
+        </div>
+        <div class="col-md-8">
+            <h1>{{ movie.title }} ({{ movie.year }})</h1>
+            <div class="movie-meta">
+                <p><strong>Release Date:</strong> {{ movie.release_date|date:"F j, Y" }}</p>
+                <p><strong>Genre:</strong>
+                    {% for genre in movie.genres.all %}
+                    <span class="badge bg-secondary">{{ genre.name }}</span>
+                    {% empty %}
+                    No genres listed
+                    {% endfor %}
+                </p>
+                <p><strong>Rating:</strong>
+                    <span class="movie-rating">
+                        {{ movie.average_rating|default:"-" }}/5
+                        <i class="bi bi-star-fill"></i>
+                    </span>
+                </p>
+                <p><strong>Duration:</strong> {{ movie.duration }}</p>
+                <p><strong>Director:</strong> {{ movie.director }}</p>
+                <p><strong>Cast:</strong> {{ movie.actors|linebreaksbr }}</p>
+            </div>
+
+            <div class="movie-description mt-4">
+                <h3>Synopsis</h3>
+                <p>{{ movie.description }}</p>
+            </div>
+
+            <div class="movie-actions mt-4">
+                <a href="{% url 'movies:home' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Watchlist Section -->
+    <div class="watchlist-section mt-5">
+        <h3><i class="bi bi-bookmark"></i> Watchlist</h3>
+        {% if user.is_authenticated %}
+        {% if movie_in_watchlist %}
+        <div class="already-in-watchlist alert alert-warning">
+            <p>This movie is already in your watchlist.</p>
+            <form method="post" action="{% url 'movies:remove_watchlist' movie.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">
+                    <i class="bi bi-bookmark-x"></i> Remove from Watchlist
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'movies:add_to_watchlist' movie.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-bookmark-plus"></i> Add to Watchlist
+            </button>
+        </form>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <a href="{% url 'account_login' %}?next={{ request.path }}" class="alert-link">
+                Log in
+            </a> to add movies to your watchlist.
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Reviews Section -->
+    <div class="reviews-section mt-5">
+        <h3><i class="bi bi-chat-left-text"></i> Reviews</h3>
+
+        {% if user.is_authenticated %}
+        {% if has_reviewed %}
+        <div class="already-reviewed alert alert-info">
+            <p>You have already reviewed this movie.</p>
+        </div>
+        {% else %}
+        <div class="review-form card">
+            <div class="card-body">
+                <h4 class="card-title">Write a Review</h4>
+                <form method="post" action="{% url 'movies:add_review' movie.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="rating" class="form-label">Your Rating (1-5)</label>
+                        <input type="number" class="form-control" name="rating" min="1" max="5" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Your Review</label>
+                        <textarea class="form-control" name="comment" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Submit Review
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-info">
+            <a href="{% url 'account_login' %}?next={{ request.path }}" class="alert-link">
+                Log in
+            </a> to leave a review.
+        </div>
+        {% endif %}
+
+        <div class="reviews-list mt-4">
+            {% for review in movie.reviews.all %}
+            <div class="review-card card mb-3">
+                <div class="card-body">
+                    <div class="review-header d-flex justify-content-between">
+                        <h5 class="card-title">{{ review.user.username }}</h5>
+                        <div class="review-rating text-warning">
+                            {% for i in "12345" %}
+                            <i class="bi bi-star{% if forloop.counter > review.rating %}-empty{% endif %}"></i>
+                            {% endfor %}
+                            ({{ review.rating }}/5)
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ review.created_at|date:"F j, Y" }}</small>
+                    <p class="card-text mt-2">{{ review.comment }}</p>
+                </div>
+            </div>
+            {% empty %}
+            <div class="alert alert-secondary">
+                No reviews yet. Be the first to review!
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Movie Detail Container */
+    .movie-detail-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    /* Poster Container */
+    .poster-container {
+        width: 100%;
+        height: 0;
+        padding-bottom: 150%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .movie-poster {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* Movie Meta */
+    .movie-meta p {
+        margin-bottom: 0.5rem;
+    }
+
+    .movie-rating {
+        color: #ffc107;
+        font-weight: bold;
+    }
+
+    /* Watchlist Section */
+    .watchlist-section {
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+
+    /* Reviews Section */
+    .review-form {
+        margin-bottom: 30px;
+    }
+
+    .review-card {
+        border-left: 4px solid #6c757d;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .poster-container {
+            padding-bottom: 120%;
+            margin-bottom: 20px;
+        }
+
+        .movie-meta p {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
